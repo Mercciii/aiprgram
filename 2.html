@@ -1,0 +1,2514 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 编程助手</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --bg:#0f1117; --panel:#161923; --panel-2:#1d2130; --panel-3:#232838;
+    --border:#272c3b; --text:#e6e8ee; --muted:#8b93a7;
+    --accent:#6366f1; --accent-2:#8b5cf6;
+    --success:#22c55e; --danger:#ef4444; --warn:#f59e0b;
+  }
+  html,body{height:100%;margin:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--text);display:flex;flex-direction:column;
+    height:100vh;overflow:hidden;-webkit-font-smoothing:antialiased;
+  }
+
+  .topbar{height:54px;flex-shrink:0;display:flex;align-items:center;gap:10px;padding:0 14px;
+    background:var(--panel);border-bottom:1px solid var(--border);z-index:60;}
+  .brand{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px;flex-shrink:0;}
+  .logo{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));font-size:14px;color:#fff;}
+  .topbar-preset{margin-left:6px;max-width:230px;flex-shrink:1;background:var(--panel-2);
+    border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12.5px;
+    padding:6px 10px;outline:none;font-family:inherit;cursor:pointer;}
+  .topbar-preset:focus{border-color:var(--accent);}
+  .topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .status-dot{width:8px;height:8px;border-radius:50%;background:#3f4658;transition:background .3s,box-shadow .3s;}
+  .status-dot.busy{background:var(--accent);box-shadow:0 0 0 4px rgba(99,102,241,.18);animation:pulse 1.4s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .icon-btn{background:transparent;border:1px solid transparent;color:var(--muted);
+    width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:15px;
+    display:grid;place-items:center;transition:.15s;flex-shrink:0;}
+  .icon-btn:hover{background:var(--panel-2);color:var(--text);}
+  .menu-btn{display:none;}
+
+  .app{display:flex;flex:1;min-height:0;}
+
+  .sidebar{width:350px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);
+    overflow-y:auto;display:flex;flex-direction:column;}
+  .sidebar::-webkit-scrollbar{width:9px;}
+  .sidebar::-webkit-scrollbar-thumb{background:#2a3040;border-radius:5px;
+    border:2px solid transparent;background-clip:padding-box;}
+  .sidebar-head{display:flex;align-items:center;justify-content:space-between;
+    padding:14px 16px 10px;position:sticky;top:0;background:var(--panel);z-index:5;
+    border-bottom:1px solid var(--border);}
+  .sidebar-head h2{font-size:13px;text-transform:uppercase;letter-spacing:1px;
+    color:var(--muted);margin:0;font-weight:600;}
+  #closeSidebar{display:none;}
+
+  details.group{border-bottom:1px solid var(--border);}
+  details.group>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;
+    padding:12px 16px;font-size:12.5px;font-weight:600;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.8px;user-select:none;transition:color .15s,background .15s;}
+  details.group>summary::-webkit-details-marker{display:none;}
+  details.group>summary:hover{color:var(--text);background:var(--panel-2);}
+  details.group>summary::before{content:'▸';font-size:10px;transition:transform .2s;color:var(--accent-2);}
+  details.group[open]>summary::before{transform:rotate(90deg);}
+  .group-body{padding:4px 16px 18px;display:flex;flex-direction:column;gap:12px;}
+
+  .field{display:flex;flex-direction:column;gap:6px;}
+  .field>span{font-size:12px;color:var(--muted);font-weight:500;
+    display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .field>span b{color:var(--accent-2);font-weight:600;}
+
+  input[type="text"],input[type="password"],input[type="number"],textarea,select{
+    width:100%;background:var(--panel-2);border:1px solid var(--border);border-radius:9px;
+    padding:8px 10px;color:var(--text);font-size:13px;font-family:inherit;outline:none;
+    transition:border-color .15s,box-shadow .15s;}
+  input:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,.15);}
+  textarea{resize:vertical;min-height:66px;line-height:1.55;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;}
+  select{cursor:pointer;}
+  select option{background:var(--panel-2);color:var(--text);}
+
+  .input-row{display:flex;gap:6px;align-items:center;}
+  .input-row input{flex:1;min-width:0;}
+
+  input[type="range"]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;
+    background:var(--border);outline:none;}
+  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;
+    border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid var(--panel);}
+  input[type="range"]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;
+    background:var(--accent);cursor:pointer;border:2px solid var(--panel);}
+
+  .btn{background:var(--panel-2);border:1px solid var(--border);color:var(--text);
+    padding:8px 12px;border-radius:9px;font-size:12.5px;font-family:inherit;cursor:pointer;
+    transition:.15s;flex:1;white-space:nowrap;}
+  .btn:hover:not(:disabled){background:#252a3a;border-color:#363d51;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    border-color:transparent;color:#fff;font-weight:500;}
+  .btn.primary:hover:not(:disabled){filter:brightness(1.1);}
+  .btn.sm{padding:5px 9px;font-size:11.5px;flex:none;}
+
+  .row{display:flex;gap:8px;align-items:center;}
+  .row > .field{flex:1;margin:0;}
+  .mini-btn{background:var(--panel-2);border:1px solid var(--border);color:var(--muted);
+    font-size:11px;padding:4px 9px;border-radius:6px;cursor:pointer;font-family:inherit;
+    white-space:nowrap;transition:.15s;flex:none;}
+  .mini-btn:hover{color:var(--text);border-color:#3a4257;}
+  .mini-btn.danger:hover{color:#fca5a5;border-color:rgba(239,68,68,.5);}
+
+  .hint{font-size:11px;color:#666e82;line-height:1.6;margin:0;}
+  .hint code{background:var(--panel-3);padding:1px 4px;border-radius:3px;font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:#a5b4fc;}
+
+  .switch-row{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);cursor:pointer;}
+  .switch-row input[type="checkbox"]{accent-color:var(--accent);width:15px;height:15px;cursor:pointer;flex:none;}
+
+  .hdr-list{display:flex;flex-direction:column;gap:6px;}
+  .hdr-item{display:flex;gap:5px;align-items:center;}
+  .hdr-item input[type="text"]{flex:1;min-width:0;padding:6px 8px;font-size:12px;}
+  .hdr-item .hdr-key{flex:0 0 36%;}
+  .hdr-item input[type="checkbox"]{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;flex:none;}
+  .hdr-item .hdr-del{flex:none;width:26px;height:26px;padding:0;font-size:12px;line-height:1;}
+
+  .diag-box{background:var(--panel-2);border:1px solid var(--border);border-radius:9px;
+    padding:10px 12px;font-size:12px;line-height:1.7;color:var(--muted);
+    max-height:280px;overflow-y:auto;display:none;word-break:break-word;}
+  .diag-box.show{display:block;}
+  .diag-box .ok{color:#86efac;}
+  .diag-box .err{color:#fca5a5;}
+  .diag-box .warn{color:#fcd34d;}
+  .diag-box .lbl{color:var(--accent-2);font-weight:600;}
+
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;}
+  .messages{flex:1;overflow-y:auto;padding:26px 24px 10px;display:flex;flex-direction:column;
+    gap:22px;scroll-behavior:smooth;}
+  .messages::-webkit-scrollbar{width:9px;}
+  .messages::-webkit-scrollbar-thumb{background:#2a3040;border-radius:5px;
+    border:2px solid transparent;background-clip:padding-box;}
+
+  .empty{margin:auto;text-align:center;max-width:560px;padding:30px 10px;}
+  .empty-icon{font-size:34px;background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    -webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:12px;}
+  .empty h2{font-size:19px;margin:0 0 8px;font-weight:600;}
+  .empty p{font-size:13px;color:var(--muted);margin:0 0 22px;}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
+  .chip{background:var(--panel-2);border:1px solid var(--border);color:var(--muted);
+    font-size:12.5px;padding:8px 14px;border-radius:999px;cursor:pointer;
+    font-family:inherit;transition:.15s;}
+  .chip:hover{color:var(--text);border-color:var(--accent);background:rgba(99,102,241,.1);}
+
+  .msg{width:100%;max-width:900px;margin:0 auto;display:flex;flex-direction:column;
+    gap:7px;animation:fadeIn .25s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .msg-head{display:flex;align-items:center;gap:8px;}
+  .msg-role{font-size:11.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);}
+  .msg.user .msg-role{color:#7dd3fc;}
+  .msg.assistant .msg-role{color:var(--accent-2);}
+  .msg-body{font-size:14.5px;line-height:1.75;word-wrap:break-word;overflow-wrap:anywhere;}
+  .msg.user .msg-body{background:var(--panel-2);border:1px solid var(--border);
+    border-left:3px solid #38bdf8;border-radius:10px;padding:11px 15px;white-space:pre-wrap;color:#dbe3ef;}
+  .msg.assistant .msg-body{border-left:3px solid var(--accent);padding-left:15px;}
+
+  .cursor{display:inline-block;width:7px;height:15px;background:var(--accent);
+    vertical-align:text-bottom;margin-left:2px;animation:blink .9s steps(2) infinite;}
+  @keyframes blink{50%{opacity:0}}
+
+  .markdown>*:first-child{margin-top:0;}
+  .markdown>*:last-child{margin-bottom:0;}
+  .markdown p{margin:0 0 12px;}
+  .markdown h1,.markdown h2,.markdown h3,.markdown h4,.markdown h5,.markdown h6{
+    margin:20px 0 10px;line-height:1.35;font-weight:600;}
+  .markdown h1{font-size:20px;}
+  .markdown h2{font-size:17.5px;}
+  .markdown h3{font-size:16px;}
+  .markdown h4,.markdown h5,.markdown h6{font-size:14.5px;}
+  .markdown ul,.markdown ol{margin:0 0 12px;padding-left:24px;}
+  .markdown li{margin:4px 0;}
+  .markdown blockquote{margin:0 0 12px;padding:4px 14px;border-left:3px solid #3a4257;color:var(--muted);}
+  .markdown hr{border:none;border-top:1px solid var(--border);margin:18px 0;}
+  .markdown a{color:#7dd3fc;text-decoration:none;}
+  .markdown a:hover{text-decoration:underline;}
+  .markdown strong{color:#fff;font-weight:650;}
+  .markdown del{color:var(--muted);}
+  .inline-code{background:#232838;padding:2px 6px;border-radius:5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;
+    color:#a5b4fc;border:1px solid #2c3346;}
+
+  .code-block{background:#0c0f16;border:1px solid var(--border);border-radius:10px;
+    overflow:hidden;margin:13px 0;}
+  .code-head{display:flex;align-items:center;justify-content:space-between;
+    padding:6px 8px 6px 12px;background:#121620;border-bottom:1px solid var(--border);}
+  .code-lang{font-size:10.5px;letter-spacing:1px;text-transform:uppercase;
+    color:var(--muted);font-weight:600;}
+  .code-actions{display:flex;gap:6px;}
+  .code-block pre{margin:0;padding:14px 16px;overflow-x:auto;}
+  .code-block pre::-webkit-scrollbar{height:8px;}
+  .code-block pre::-webkit-scrollbar-thumb{background:#2a3040;border-radius:4px;}
+  .code-block code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Courier New",monospace;
+    font-size:13px;line-height:1.65;color:#c9d1d9;white-space:pre;}
+
+  .error-box{background:rgba(239,68,68,.09);border:1px solid rgba(239,68,68,.35);
+    color:#fca5a5;padding:11px 14px;border-radius:9px;font-size:13px;line-height:1.6;
+    white-space:pre-wrap;margin-top:8px;}
+  .muted{color:var(--muted);}
+
+  .composer{flex-shrink:0;border-top:1px solid var(--border);background:var(--panel);padding:14px 24px 18px;}
+  .composer-inner{max-width:900px;margin:0 auto;display:flex;align-items:flex-end;gap:10px;
+    background:var(--panel-2);border:1px solid var(--border);border-radius:14px;
+    padding:8px 8px 8px 14px;transition:border-color .15s,box-shadow .15s;}
+  .composer-inner:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,.13);}
+  #input{flex:1;background:transparent;border:none;outline:none;resize:none;color:var(--text);
+    font-family:inherit;font-size:14.5px;line-height:1.6;max-height:190px;padding:6px 0;}
+  #input::placeholder{color:#5b6379;}
+  .send-btn{flex-shrink:0;width:38px;height:38px;border-radius:10px;border:none;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;font-size:16px;
+    cursor:pointer;display:grid;place-items:center;transition:.15s;}
+  .send-btn:hover:not(:disabled){filter:brightness(1.12);}
+  .send-btn:disabled{opacity:.4;cursor:not-allowed;}
+  .composer-foot{max-width:900px;margin:8px auto 0;font-size:11px;color:#5b6379;
+    display:flex;justify-content:space-between;gap:10px;}
+  kbd{background:var(--panel-2);border:1px solid var(--border);border-radius:4px;
+    padding:1px 5px;font-size:10.5px;font-family:inherit;color:var(--muted);}
+
+  .toast-wrap{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);
+    display:flex;flex-direction:column;gap:8px;align-items:center;z-index:200;pointer-events:none;}
+  .toast{background:#232838;border:1px solid var(--border);color:var(--text);
+    padding:10px 18px;border-radius:10px;font-size:13px;
+    box-shadow:0 10px 30px rgba(0,0,0,.45);animation:toastIn .25s ease;max-width:80vw;}
+  .toast.success{border-color:rgba(34,197,94,.5);color:#86efac;}
+  .toast.error{border-color:rgba(239,68,68,.5);color:#fca5a5;}
+  @keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:55;}
+  .overlay.show{display:block;}
+
+  @media (max-width:860px){
+    .menu-btn{display:grid;}
+    #closeSidebar{display:grid;}
+    .sidebar{position:fixed;top:0;left:0;bottom:0;z-index:70;width:320px;
+      transform:translateX(-100%);transition:transform .25s ease;
+      box-shadow:0 0 40px rgba(0,0,0,.5);}
+    .sidebar.open{transform:none;}
+    .messages{padding:18px 14px 8px;}
+    .composer{padding:12px 14px 16px;}
+    .msg.assistant .msg-body{padding-left:11px;}
+    .topbar-preset{max-width:110px;}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" title="配置">☰</button>
+  <div class="brand"><span class="logo">◈</span> AI 编程助手</div>
+  <select class="topbar-preset" id="topPreset" title="快速切换预设"></select>
+  <div class="topbar-right">
+    <span class="status-dot" id="statusDot"></span>
+    <button class="icon-btn" id="clearBtn" title="清空对话">🗑</button>
+  </div>
+</header>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <h2>API 配置</h2>
+      <button class="icon-btn" id="closeSidebar" title="关闭">✕</button>
+    </div>
+
+    <details class="group" open>
+      <summary>预设管理</summary>
+      <div class="group-body">
+        <div class="field">
+          <span>当前预设</span>
+          <select id="presetSelect"></select>
+        </div>
+        <div class="field">
+          <span>备注</span>
+          <input id="presetRemark" type="text" placeholder="可选备注" spellcheck="false">
+        </div>
+        <div class="row">
+          <button class="btn sm" id="presetNew">新建</button>
+          <button class="btn sm" id="presetRename">重命名</button>
+          <button class="btn sm" id="presetDup">复制</button>
+          <button class="btn sm" id="presetDel">删除</button>
+        </div>
+        <div class="row">
+          <button class="btn sm" id="presetDefault">设为默认</button>
+          <span class="hint" id="defaultTag"></span>
+        </div>
+        <div class="row">
+          <button class="btn sm" id="importBtn">导入</button>
+          <button class="btn sm" id="exportBtn">导出</button>
+        </div>
+        <label class="switch-row" title="导出时隐藏 API Key">
+          <input type="checkbox" id="exportMask" checked> 导出时脱敏 API Key
+        </label>
+      </div>
+    </details>
+
+    <details class="group" open>
+      <summary>连接</summary>
+      <div class="group-body">
+        <div class="field">
+          <span>接口类型</span>
+          <select id="apiType">
+            <option value="openai">OpenAI 兼容</option>
+            <option value="anthropic">Anthropic Claude</option>
+            <option value="gemini">Google Gemini</option>
+            <option value="ollama">Ollama 本地</option>
+            <option value="custom">自定义接口</option>
+          </select>
+        </div>
+
+        <label class="field">
+          <span>API Key</span>
+          <div class="input-row">
+            <input id="apiKey" type="password" spellcheck="false" placeholder="sk-...">
+            <button class="mini-btn" id="toggleKey" type="button">显示</button>
+          </div>
+        </label>
+
+        <div class="field">
+          <span>Key 存储方式</span>
+          <select id="keyStorage">
+            <option value="local">本地持久化（localStorage）</option>
+            <option value="session">仅当前会话（sessionStorage）</option>
+            <option value="none">不保存（每次输入）</option>
+          </select>
+        </div>
+
+        <!-- 标准接口字段 -->
+        <div id="standardFields">
+          <label class="field">
+            <span>API 地址</span>
+            <input id="baseUrl" type="text" spellcheck="false" placeholder="https://api.openai.com/v1">
+          </label>
+
+          <label class="switch-row" title="勾选后使用下方完整 URL 发送请求">
+            <input type="checkbox" id="pathManual"> 手动指定完整请求 URL
+          </label>
+          <input id="manualUrl" type="text" spellcheck="false"
+                 placeholder="https://example.com/v1/chat/completions"
+                 style="display:none">
+
+          <div class="field">
+            <span>自定义请求头
+              <button class="mini-btn" id="addHeader" type="button">+ 添加</button>
+            </span>
+            <div class="hdr-list" id="hdrList"></div>
+          </div>
+        </div>
+
+        <!-- 自定义接口字段 -->
+        <div id="customFields" style="display:none;flex-direction:column;gap:12px;">
+          <div class="field">
+            <span>请求方法</span>
+            <select id="customMethod">
+              <option value="POST">POST</option>
+              <option value="GET">GET</option>
+            </select>
+          </div>
+
+          <label class="field">
+            <span>请求 URL</span>
+            <input id="customUrl" type="text" spellcheck="false" placeholder="https://api.example.com/v1/chat">
+          </label>
+
+          <label class="field">
+            <span>请求头模板（JSON）</span>
+            <textarea id="customHeadersTpl" rows="3" spellcheck="false"
+              placeholder='{"Content-Type":"application/json","Authorization":"Bearer {{apiKey}}"}'></textarea>
+          </label>
+
+          <label class="field">
+            <span>请求体模板（JSON）</span>
+            <textarea id="customBodyTpl" rows="5" spellcheck="false"
+              placeholder='{"model":"{{model}}","messages":{{messages}},"stream":{{stream}}}'></textarea>
+          </label>
+
+          <label class="field">
+            <span>响应提取路径 <span class="hint">留空取整个响应</span></span>
+            <input id="customRespPath" type="text" spellcheck="false" placeholder="choices[0].message.content">
+          </label>
+
+          <label class="field">
+            <span>流式提取路径</span>
+            <input id="customStreamPath" type="text" spellcheck="false" placeholder="choices[0].delta.content">
+          </label>
+
+          <div class="field">
+            <span>流式格式</span>
+            <select id="customStreamFmt">
+              <option value="sse">SSE（data: ...）</option>
+              <option value="ndjson">NDJSON（每行一个 JSON）</option>
+              <option value="text">纯文本</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <label class="field">
+              <span>SSE 前缀</span>
+              <input id="customSsePrefix" type="text" value="data:">
+            </label>
+            <label class="field">
+              <span>结束标记</span>
+              <input id="customSseDone" type="text" value="[DONE]">
+            </label>
+          </div>
+
+          <div class="row">
+            <button class="btn sm" id="tplOpenai" type="button">填充 OpenAI 模板</button>
+            <button class="btn sm" id="tplOllama" type="button">填充 Ollama 模板</button>
+          </div>
+
+          <p class="hint">
+            可用变量：<code>{{model}}</code> <code>{{messages}}</code> <code>{{system}}</code>
+            <code>{{temperature}}</code> <code>{{max_tokens}}</code> <code>{{top_p}}</code>
+            <code>{{frequency_penalty}}</code> <code>{{presence_penalty}}</code>
+            <code>{{stop}}</code> <code>{{stream}}</code> <code>{{apiKey}}</code>。
+            文本变量（model / system / apiKey）在 JSON 中会自动转义；
+            messages / stop 为 JSON 结构，直接不加引号使用。
+          </p>
+        </div>
+      </div>
+    </details>
+
+    <details class="group" open>
+      <summary>模型与参数</summary>
+      <div class="group-body">
+        <label class="field">
+          <span>模型
+            <button class="mini-btn" id="fetchModels" type="button" title="从接口拉取模型列表">获取列表</button>
+          </span>
+          <input id="model" type="text" list="modelList" spellcheck="false" placeholder="gpt-4o-mini">
+          <datalist id="modelList"></datalist>
+        </label>
+
+        <label class="field">
+          <span>温度 <b id="tempVal">0.3</b></span>
+          <input id="temperature" type="range" min="0" max="1.5" step="0.1" value="0.3">
+        </label>
+        <div class="row">
+          <button class="btn sm" data-temp="0.2">精确 0.2</button>
+          <button class="btn sm" data-temp="0.7">平衡 0.7</button>
+          <button class="btn sm" data-temp="1.2">创意 1.2</button>
+        </div>
+
+        <label class="field">
+          <span>max_tokens <span class="hint">留空用接口默认</span></span>
+          <input id="maxTokens" type="number" min="1" placeholder="例如 2048">
+        </label>
+
+        <details>
+          <summary style="cursor:pointer;font-size:12px;color:var(--muted);padding:4px 0;list-style:none;">▸ 高级参数</summary>
+          <div style="display:flex;flex-direction:column;gap:10px;padding-top:10px;">
+            <label class="field"><span>top_p</span>
+              <input id="topP" type="number" min="0" max="1" step="0.05" placeholder="0.95"></label>
+            <label class="field"><span>frequency_penalty</span>
+              <input id="freqPenalty" type="number" min="-2" max="2" step="0.1" placeholder="0"></label>
+            <label class="field"><span>presence_penalty</span>
+              <input id="presPenalty" type="number" min="-2" max="2" step="0.1" placeholder="0"></label>
+            <label class="field"><span>stop（逗号分隔）</span>
+              <input id="stopSeq" type="text" placeholder="例如 END,###"></label>
+          </div>
+        </details>
+
+        <label class="switch-row" title="关闭后使用普通 JSON 响应">
+          <input type="checkbox" id="streamOn" checked> 流式输出
+        </label>
+
+        <label class="field">
+          <span>上下文消息数 <span class="hint">仅保留最近 N 条</span></span>
+          <input id="ctxLimit" type="number" min="1" max="200" value="20">
+        </label>
+      </div>
+    </details>
+
+    <details class="group">
+      <summary>系统提示词</summary>
+      <div class="group-body">
+        <div class="field">
+          <span>模板
+            <button class="mini-btn" id="saveTpl" type="button">保存为模板</button>
+          </span>
+          <div class="input-row">
+            <select id="tplSelect"></select>
+            <button class="mini-btn danger" id="delTpl" type="button">删除</button>
+          </div>
+        </div>
+        <textarea id="system" rows="5" spellcheck="false"></textarea>
+      </div>
+    </details>
+
+    <details class="group">
+      <summary>诊断</summary>
+      <div class="group-body">
+        <div class="row">
+          <button class="btn primary" id="testBtn">测试连接</button>
+          <button class="btn" id="diagBtn">一键诊断</button>
+        </div>
+        <div class="diag-box" id="diagBox"></div>
+      </div>
+    </details>
+
+    <details class="group">
+      <summary>数据</summary>
+      <div class="group-body">
+        <button class="btn" id="resetBtn">恢复当前预设默认值</button>
+        <button class="btn danger" id="wipeBtn"
+                style="background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.4);color:#fca5a5;">
+          清空所有本地数据
+        </button>
+        <p class="hint">配置与对话记录仅保存在本机浏览器，不会上传到服务器。</p>
+      </div>
+    </details>
+  </aside>
+
+  <main class="main">
+    <div class="messages" id="messages">
+      <div class="empty" id="empty">
+        <div class="empty-icon">◈</div>
+        <h2>开始用 AI 写代码</h2>
+        <p>先在左侧配置好接口，然后描述你的需求。</p>
+        <div class="chips">
+          <button class="chip">用 Python 实现快速排序并加详细注释</button>
+          <button class="chip">写一个单文件 HTML 贪吃蛇小游戏</button>
+          <button class="chip">帮我写一个 React 的防抖 Hook</button>
+          <button class="chip">解释一下 JavaScript 事件循环</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="composer">
+      <div class="composer-inner">
+        <textarea id="input" rows="1"
+          placeholder="描述你的编程需求，例如：写一个 Python 脚本批量重命名文件…"></textarea>
+        <button class="send-btn" id="sendBtn" title="发送">➤</button>
+      </div>
+      <div class="composer-foot">
+        <span><kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>Enter</kbd> 发送</span>
+        <span id="modelHint"></span>
+      </div>
+    </div>
+  </main>
+</div>
+
+<input type="file" id="importFile" accept="application/json,.json" style="display:none">
+<div class="overlay" id="overlay"></div>
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ============================================================
+   *  常量
+   * ============================================================ */
+  const LS_KEY = 'ai-coder-settings-v3';
+  const SS_KEY_PREFIX = 'ai-coder-key-';
+
+  const DEFAULT_SYSTEM =
+    '你是一位资深的全栈工程师。回答时请直接给出完整、可运行、有注释的代码，' +
+    '使用 Markdown 代码块并标注语言。先给代码，再简要说明关键思路与注意事项。';
+
+  const TYPE_DEFAULTS = {
+    openai:    { baseUrl: 'https://api.openai.com/v1',                 model: 'gpt-4o-mini' },
+    anthropic: { baseUrl: 'https://api.anthropic.com',                 model: 'claude-3-5-sonnet-20241022' },
+    gemini:    { baseUrl: 'https://generativelanguage.googleapis.com', model: 'gemini-1.5-flash' },
+    ollama:    { baseUrl: 'http://localhost:11434',                    model: 'llama3.1' },
+    custom:    { baseUrl: '',                                          model: 'gpt-4o-mini' }
+  };
+
+  const TYPE_LABEL = {
+    openai: 'OpenAI', anthropic: 'Anthropic', gemini: 'Gemini',
+    ollama: 'Ollama', custom: '自定义'
+  };
+
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => Array.prototype.slice.call(document.querySelectorAll(s));
+
+  const messagesEl = $('#messages');
+  const emptyEl = $('#empty');
+  const inputEl = $('#input');
+  const sendBtn = $('#sendBtn');
+  const statusDot = $('#statusDot');
+  const sidebar = $('#sidebar');
+  const overlay = $('#overlay');
+
+  const state = {
+    settings: null,
+    messages: [],
+    generating: false,
+    controller: null
+  };
+
+  let codeIdSeq = 0;
+  let saveTimer = null;
+
+  /* ============================================================
+   *  基础工具
+   * ============================================================ */
+  function uid() {
+    return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function stripSlash(s) { return String(s || '').replace(/\/+$/, ''); }
+
+  function toast(msg, type) {
+    const el = document.createElement('div');
+    el.className = 'toast' + (type ? ' ' + type : '');
+    el.textContent = msg;
+    $('#toastWrap').appendChild(el);
+    setTimeout(function () {
+      el.style.transition = 'opacity .3s, transform .3s';
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(8px)';
+      setTimeout(function () { el.remove(); }, 320);
+    }, 2800);
+  }
+
+  function download(filename, text) {
+    const blob = new Blob([text], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+  }
+
+  function isNearBottom() {
+    return messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 140;
+  }
+  function scrollBottom() { messagesEl.scrollTop = messagesEl.scrollHeight; }
+  function hideEmpty() { emptyEl.style.display = 'none'; }
+  function showEmpty() { emptyEl.style.display = ''; }
+
+  function autoResize() {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 190) + 'px';
+  }
+
+  function openSidebar() {
+    sidebar.classList.add('open');
+    overlay.classList.add('show');
+  }
+  function closeSidebar() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+  }
+
+  /* ============================================================
+   *  自定义接口：变量替换 & 路径提取
+   * ============================================================ */
+  function escapeJsonInner(s) {
+    return String(s == null ? '' : s)
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '\\r')
+      .replace(/\t/g, '\\t');
+  }
+
+  /* 用于 URL：所有变量原样插入 */
+  function applyVarsRaw(tpl, vars) {
+    return String(tpl == null ? '' : tpl).replace(/\{\{(\w+)\}\}/g, function (m, k) {
+      if (Object.prototype.hasOwnProperty.call(vars, k)) return String(vars[k]);
+      return m;
+    });
+  }
+
+  /* 用于 JSON 模板：文本变量转义，结构变量原样插入 */
+  function applyVarsForJson(tpl, vars) {
+    const TEXT_VARS = ['model', 'system', 'apiKey'];
+    const JSON_VARS = ['messages', 'stop'];
+    return String(tpl == null ? '' : tpl).replace(/\{\{(\w+)\}\}/g, function (m, k) {
+      if (!Object.prototype.hasOwnProperty.call(vars, k)) return m;
+      const v = vars[k];
+      if (JSON_VARS.indexOf(k) >= 0) return String(v);
+      if (TEXT_VARS.indexOf(k) >= 0) return escapeJsonInner(String(v));
+      return String(v);
+    });
+  }
+
+  /* 简单路径提取：支持 a.b[0].c */
+  function getByPath(obj, path) {
+    if (!path || !String(path).trim()) return obj;
+    const tokens = [];
+    String(path).split('.').forEach(function (seg) {
+      const re = /([^\[\]]+)|\[(\d+)\]/g;
+      let m;
+      while ((m = re.exec(seg)) !== null) {
+        if (m[1] != null) tokens.push(m[1]);
+        else tokens.push(Number(m[2]));
+      }
+    });
+    let cur = obj;
+    for (let i = 0; i < tokens.length; i++) {
+      if (cur == null) return undefined;
+      cur = cur[tokens[i]];
+    }
+    return cur;
+  }
+
+  function extractCustomText(p, json, path) {
+    const v = getByPath(json, path);
+    if (v == null) return '';
+    if (typeof v === 'string') return v;
+    if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+    return '';
+  }
+
+  function buildCustomVars(p, messages) {
+    const sys = (p.system || '').trim();
+    const msgs = [];
+    if (sys) msgs.push({ role: 'system', content: sys });
+    (messages || []).forEach(function (m) {
+      msgs.push({ role: m.role, content: m.content });
+    });
+
+    const stopArr = (p.stop && String(p.stop).trim())
+      ? String(p.stop).split(',').map(function (s) { return s.trim(); }).filter(Boolean)
+      : [];
+
+    const num = function (v, dft) {
+      if (v === '' || v == null) return dft;
+      const n = Number(v);
+      return isNaN(n) ? dft : n;
+    };
+
+    return {
+      model: p.model || '',
+      messages: JSON.stringify(msgs),
+      system: sys,
+      temperature: num(p.temperature, 0.3),
+      max_tokens: num(p.maxTokens, 2048),
+      top_p: num(p.topP, 1),
+      frequency_penalty: num(p.freqPenalty, 0),
+      presence_penalty: num(p.presPenalty, 0),
+      stop: JSON.stringify(stopArr),
+      stream: !!p.streamOn,
+      apiKey: p.apiKey || ''
+    };
+  }
+
+  function buildCustomUrl(p) {
+    const raw = (p.customUrl || '').trim();
+    if (!raw) throw new Error('自定义请求 URL 为空');
+    if (!/^https?:\/\//i.test(raw)) throw new Error('自定义 URL 需以 http:// 或 https:// 开头');
+    return applyVarsRaw(raw, buildCustomVars(p, []));
+  }
+
+  function buildCustomHeaders(p, messages) {
+    const vars = buildCustomVars(p, messages);
+    const tpl = (p.customHeadersTpl || '').trim() || '{"Content-Type":"application/json"}';
+    const txt = applyVarsForJson(tpl, vars);
+    try { return JSON.parse(txt); }
+    catch (e) { throw new Error('请求头模板不是合法 JSON：' + e.message); }
+  }
+
+  function buildCustomBody(p, messages) {
+    const vars = buildCustomVars(p, messages);
+    let tpl = (p.customBodyTpl || '').trim();
+    if (!tpl) tpl = '{"model":"{{model}}","messages":{{messages}},"stream":{{stream}}}';
+    const txt = applyVarsForJson(tpl, vars);
+    try { return JSON.parse(txt); }
+    catch (e) { throw new Error('请求体模板不是合法 JSON：' + e.message); }
+  }
+
+  /* ============================================================
+   *  Markdown 渲染
+   * ============================================================ */
+  function renderInline(text) {
+    const codes = [];
+    text = text.replace(/`([^`\n]+)`/g, function (_m, c) {
+      codes.push(c);
+      return '\u0001' + (codes.length - 1) + '\u0001';
+    });
+
+    text = escapeHtml(text);
+
+    text = text.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/(^|[^*\w])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+    text = text.replace(/~~([^~\n]+)~~/g, '<del>$1</del>');
+    text = text.replace(
+      /\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+    );
+
+    text = text.replace(/\u0001(\d+)\u0001/g, function (_m, i) {
+      return '<code class="inline-code">' + escapeHtml(codes[+i]) + '</code>';
+    });
+
+    return text;
+  }
+
+  function codeBlockHtml(lang, code) {
+    const id = 'cb-' + (++codeIdSeq);
+    const clean = String(code).replace(/\n+$/, '');
+    const isHtml =
+      /^(html|htm|xml|svg)$/i.test(lang) ||
+      /^\s*<(!doctype|html|body|div|svg|head)/i.test(clean);
+
+    return '' +
+      '<div class="code-block">' +
+        '<div class="code-head">' +
+          '<span class="code-lang">' + escapeHtml(lang || 'code') + '</span>' +
+          '<div class="code-actions">' +
+            (isHtml
+              ? '<button class="mini-btn" data-action="preview" data-code-id="' + id + '">▶ 预览</button>'
+              : '') +
+            '<button class="mini-btn" data-action="copy" data-code-id="' + id + '">复制</button>' +
+          '</div>' +
+        '</div>' +
+        '<pre><code id="' + id + '">' + escapeHtml(clean) + '</code></pre>' +
+      '</div>';
+  }
+
+  function renderMarkdown(src) {
+    if (!src) return '';
+
+    const blocks = [];
+
+    src = String(src).replace(
+      /```([^\n`]*)\n?([\s\S]*?)(?:```|$)/g,
+      function (_m, lang, code) {
+        blocks.push({ lang: (lang || '').trim(), code: code });
+        return '\n\u0000CB' + (blocks.length - 1) + '\u0000\n';
+      }
+    );
+
+    const lines = src.split('\n');
+    const out = [];
+    let para = [];
+    let listType = null;
+    let listItems = [];
+
+    function flushPara() {
+      if (!para.length) return;
+      out.push('<p>' + renderInline(para.join('\n')).replace(/\n/g, '<br>') + '</p>');
+      para = [];
+    }
+    function flushList() {
+      if (!listItems.length) return;
+      out.push(
+        '<' + listType + '>' +
+        listItems.map(function (t) { return '<li>' + renderInline(t) + '</li>'; }).join('') +
+        '</' + listType + '>'
+      );
+      listItems = [];
+      listType = null;
+    }
+    function flushAll() { flushPara(); flushList(); }
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].replace(/\s+$/, '');
+
+      const cb = line.trim().match(/^\u0000CB(\d+)\u0000$/);
+      if (cb) {
+        flushAll();
+        const b = blocks[+cb[1]];
+        out.push(codeBlockHtml(b.lang, b.code));
+        continue;
+      }
+
+      if (!line.trim()) { flushAll(); continue; }
+
+      const h = line.match(/^(#{1,6})\s+(.*)$/);
+      if (h) {
+        flushAll();
+        const lv = h[1].length;
+        out.push('<h' + lv + '>' + renderInline(h[2]) + '</h' + lv + '>');
+        continue;
+      }
+
+      if (/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
+        flushAll();
+        out.push('<hr>');
+        continue;
+      }
+
+      const bq = line.match(/^>\s?(.*)$/);
+      if (bq) {
+        flushAll();
+        out.push('<blockquote>' + renderInline(bq[1]) + '</blockquote>');
+        continue;
+      }
+
+      const ul = line.match(/^\s*[-*+]\s+(.*)$/);
+      if (ul) {
+        flushPara();
+        if (listType !== 'ul') { flushList(); listType = 'ul'; }
+        listItems.push(ul[1]);
+        continue;
+      }
+
+      const ol = line.match(/^\s*\d+[.)]\s+(.*)$/);
+      if (ol) {
+        flushPara();
+        if (listType !== 'ol') { flushList(); listType = 'ol'; }
+        listItems.push(ol[1]);
+        continue;
+      }
+
+      if (listItems.length) flushList();
+      para.push(line);
+    }
+
+    flushAll();
+    return out.join('\n');
+  }
+
+  /* ============================================================
+   *  预设 / 设置
+   * ============================================================ */
+  function newPreset(name, type) {
+    const t = type || 'openai';
+    const d = TYPE_DEFAULTS[t] || TYPE_DEFAULTS.openai;
+    return {
+      id: uid(),
+      name: name || '新预设',
+      remark: '',
+      isDefault: false,
+      apiType: t,
+      baseUrl: d.baseUrl,
+      apiKey: '',
+      keyStorage: 'local',
+      pathManual: false,
+      manualUrl: '',
+      customHeaders: [],
+      // 自定义接口字段
+      customUrl: '',
+      customMethod: 'POST',
+      customHeadersTpl: '{"Content-Type":"application/json","Authorization":"Bearer {{apiKey}}"}',
+      customBodyTpl: '{"model":"{{model}}","messages":{{messages}},"temperature":{{temperature}},"stream":{{stream}}}',
+      customRespPath: 'choices[0].message.content',
+      customStreamPath: 'choices[0].delta.content',
+      customStreamFmt: 'sse',
+      customSsePrefix: 'data:',
+      customSseDone: '[DONE]',
+      // 通用参数
+      model: d.model,
+      temperature: 0.3,
+      maxTokens: '',
+      topP: '',
+      freqPenalty: '',
+      presPenalty: '',
+      stop: '',
+      streamOn: true,
+      ctxLimit: 20,
+      system: DEFAULT_SYSTEM
+    };
+  }
+
+  function defaultSettings() {
+    const p = newPreset('默认预设', 'openai');
+    p.isDefault = true;
+    return {
+      version: 3,
+      presets: [p],
+      activePresetId: p.id,
+      templates: [{ id: uid(), name: '默认工程师', content: DEFAULT_SYSTEM }],
+      recentModels: []
+    };
+  }
+
+  function activePreset() {
+    const s = state.settings;
+    let p = s.presets.find(function (x) { return x.id === s.activePresetId; });
+    if (!p) { p = s.presets[0]; s.activePresetId = p.id; }
+    return p;
+  }
+
+  function persist() {
+    try {
+      const copy = JSON.parse(JSON.stringify(state.settings));
+      copy.presets.forEach(function (p) {
+        if (p.keyStorage === 'session') {
+          try { sessionStorage.setItem(SS_KEY_PREFIX + p.id, p.apiKey || ''); } catch (e) {}
+          p.apiKey = '';
+        } else if (p.keyStorage === 'none') {
+          p.apiKey = '';
+        }
+      });
+      localStorage.setItem(LS_KEY, JSON.stringify(copy));
+    } catch (e) { /* ignore */ }
+  }
+
+  function persistSoon() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(persist, 350);
+  }
+
+  function loadSettings() {
+    let data = null;
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw) data = JSON.parse(raw);
+    } catch (e) { data = null; }
+
+    if (!data || !Array.isArray(data.presets) || !data.presets.length) {
+      return defaultSettings();
+    }
+
+    data.presets = data.presets.map(function (p) {
+      const base = newPreset(p.name || '预设', p.apiType || 'openai');
+      const merged = Object.assign(base, p);
+      if (merged.keyStorage === 'session') {
+        try { merged.apiKey = sessionStorage.getItem(SS_KEY_PREFIX + merged.id) || ''; } catch (e) {}
+      }
+      if (!Array.isArray(merged.customHeaders)) merged.customHeaders = [];
+      return merged;
+    });
+
+    if (!Array.isArray(data.templates) || !data.templates.length) {
+      data.templates = [{ id: uid(), name: '默认工程师', content: DEFAULT_SYSTEM }];
+    }
+    if (!Array.isArray(data.recentModels)) data.recentModels = [];
+    if (!data.presets.some(function (p) { return p.id === data.activePresetId; })) {
+      data.activePresetId = data.presets[0].id;
+    }
+    return data;
+  }
+
+  /* ============================================================
+   *  URL / 请求头 / 请求体（标准接口）
+   * ============================================================ */
+  function buildRequestUrl(p) {
+    if (p.apiType === 'custom') return buildCustomUrl(p);
+
+    if (p.pathManual && p.manualUrl && p.manualUrl.trim()) {
+      return p.manualUrl.trim();
+    }
+
+    const base = stripSlash(p.baseUrl || '');
+    if (!base) throw new Error('API 地址为空');
+    if (!/^https?:\/\//i.test(base)) throw new Error('API 地址需以 http:// 或 https:// 开头');
+
+    if (p.apiType === 'openai') {
+      if (/\/chat\/completions$/.test(base)) return base;
+      if (/\/v1$/.test(base)) return base + '/chat/completions';
+      return base + '/v1/chat/completions';
+    }
+    if (p.apiType === 'anthropic') {
+      if (/\/messages$/.test(base)) return base;
+      if (/\/v1$/.test(base)) return base + '/messages';
+      return base + '/v1/messages';
+    }
+    if (p.apiType === 'gemini') {
+      const stem = /\/v1beta$/.test(base) ? base : base + '/v1beta';
+      const verb = p.streamOn ? ':streamGenerateContent' : ':generateContent';
+      const extra = p.streamOn ? '&alt=sse' : '';
+      return stem + '/models/' + encodeURIComponent(p.model || '') + verb +
+             '?key=' + encodeURIComponent(p.apiKey || '') + extra;
+    }
+    if (p.apiType === 'ollama') {
+      if (/\/api\/chat$/.test(base)) return base;
+      return base + '/api/chat';
+    }
+    throw new Error('未知接口类型：' + p.apiType);
+  }
+
+  function buildModelsUrl(p) {
+    const base = stripSlash(p.baseUrl || '');
+    if (p.apiType === 'openai' || p.apiType === 'anthropic') {
+      if (/\/v1$/.test(base)) return base + '/models';
+      return base + '/v1/models';
+    }
+    if (p.apiType === 'gemini') {
+      const stem = /\/v1beta$/.test(base) ? base : base + '/v1beta';
+      return stem + '/models?key=' + encodeURIComponent(p.apiKey || '');
+    }
+    if (p.apiType === 'ollama') {
+      return base + '/api/tags';
+    }
+    return base + '/models';
+  }
+
+  function buildHeaders(p, messages) {
+    if (p.apiType === 'custom') return buildCustomHeaders(p, messages || []);
+
+    const h = { 'Content-Type': 'application/json' };
+
+    if (p.apiType === 'openai') {
+      if (p.apiKey) h['Authorization'] = 'Bearer ' + p.apiKey;
+    } else if (p.apiType === 'anthropic') {
+      if (p.apiKey) h['x-api-key'] = p.apiKey;
+      h['anthropic-version'] = '2023-06-01';
+      h['anthropic-dangerous-direct-browser-access'] = 'true';
+    } else if (p.apiType === 'ollama') {
+      if (p.apiKey) h['Authorization'] = 'Bearer ' + p.apiKey;
+    }
+
+    (p.customHeaders || []).forEach(function (item) {
+      if (item && item.enabled !== false && item.key) {
+        h[item.key] = item.value || '';
+      }
+    });
+
+    return h;
+  }
+
+  function applyCommonParams(body, p) {
+    if (p.temperature !== '' && p.temperature != null) body.temperature = Number(p.temperature);
+    if (p.maxTokens !== '' && p.maxTokens != null) body.max_tokens = Number(p.maxTokens);
+    if (p.topP !== '' && p.topP != null) body.top_p = Number(p.topP);
+    if (p.freqPenalty !== '' && p.freqPenalty != null) body.frequency_penalty = Number(p.freqPenalty);
+    if (p.presPenalty !== '' && p.presPenalty != null) body.presence_penalty = Number(p.presPenalty);
+    if (p.stop && String(p.stop).trim()) {
+      body.stop = String(p.stop).split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+    }
+  }
+
+  function buildBody(p, messages) {
+    if (p.apiType === 'custom') return buildCustomBody(p, messages);
+
+    const sys = (p.system || '').trim();
+    const stream = !!p.streamOn;
+
+    if (p.apiType === 'openai') {
+      const msgs = [];
+      if (sys) msgs.push({ role: 'system', content: sys });
+      messages.forEach(function (m) { msgs.push({ role: m.role, content: m.content }); });
+      const body = { model: p.model, messages: msgs, stream: stream };
+      applyCommonParams(body, p);
+      return body;
+    }
+
+    if (p.apiType === 'anthropic') {
+      const msgs = messages.map(function (m) {
+        return { role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content };
+      });
+      const body = {
+        model: p.model,
+        messages: msgs,
+        max_tokens: (p.maxTokens !== '' && p.maxTokens != null) ? Number(p.maxTokens) : 4096,
+        stream: stream
+      };
+      if (sys) body.system = sys;
+      if (p.temperature !== '' && p.temperature != null) body.temperature = Number(p.temperature);
+      if (p.topP !== '' && p.topP != null) body.top_p = Number(p.topP);
+      if (p.stop && String(p.stop).trim()) {
+        body.stop_sequences = String(p.stop).split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+      }
+      return body;
+    }
+
+    if (p.apiType === 'gemini') {
+      const contents = messages.map(function (m) {
+        return {
+          role: m.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: m.content }]
+        };
+      });
+      const gen = {};
+      if (p.temperature !== '' && p.temperature != null) gen.temperature = Number(p.temperature);
+      if (p.maxTokens !== '' && p.maxTokens != null) gen.maxOutputTokens = Number(p.maxTokens);
+      if (p.topP !== '' && p.topP != null) gen.topP = Number(p.topP);
+      if (p.stop && String(p.stop).trim()) {
+        gen.stopSequences = String(p.stop).split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+      }
+      const body = { contents: contents };
+      if (sys) body.systemInstruction = { parts: [{ text: sys }] };
+      if (Object.keys(gen).length) body.generationConfig = gen;
+      return body;
+    }
+
+    if (p.apiType === 'ollama') {
+      const msgs = [];
+      if (sys) msgs.push({ role: 'system', content: sys });
+      messages.forEach(function (m) { msgs.push({ role: m.role, content: m.content }); });
+      const opts = {};
+      if (p.temperature !== '' && p.temperature != null) opts.temperature = Number(p.temperature);
+      if (p.maxTokens !== '' && p.maxTokens != null) opts.num_predict = Number(p.maxTokens);
+      if (p.topP !== '' && p.topP != null) opts.top_p = Number(p.topP);
+      if (p.freqPenalty !== '' && p.freqPenalty != null) opts.frequency_penalty = Number(p.freqPenalty);
+      if (p.presPenalty !== '' && p.presPenalty != null) opts.presence_penalty = Number(p.presPenalty);
+      if (p.stop && String(p.stop).trim()) {
+        opts.stop = String(p.stop).split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+      }
+      const body = { model: p.model, messages: msgs, stream: stream };
+      if (Object.keys(opts).length) body.options = opts;
+      return body;
+    }
+
+    throw new Error('未知接口类型');
+  }
+
+  /* ============================================================
+   *  响应解析
+   * ============================================================ */
+  function parseNonStream(p, json) {
+    if (!json) return '';
+    if (p.apiType === 'custom') {
+      return extractCustomText(p, json, p.customRespPath);
+    }
+    if (p.apiType === 'openai') {
+      const c = json.choices && json.choices[0];
+      return (c && ((c.message && c.message.content) || c.text)) || '';
+    }
+    if (p.apiType === 'anthropic') {
+      if (Array.isArray(json.content)) {
+        return json.content.map(function (b) { return b.text || ''; }).join('');
+      }
+      return '';
+    }
+    if (p.apiType === 'gemini') {
+      const c = json.candidates && json.candidates[0];
+      if (c && c.content && Array.isArray(c.content.parts)) {
+        return c.content.parts.map(function (x) { return x.text || ''; }).join('');
+      }
+      return '';
+    }
+    if (p.apiType === 'ollama') {
+      return (json.message && json.message.content) || '';
+    }
+    return '';
+  }
+
+  function parseStreamEvent(p, dataStr) {
+    if (!dataStr || dataStr === '[DONE]') return '';
+    let json;
+    try { json = JSON.parse(dataStr); } catch (e) { return ''; }
+
+    if (p.apiType === 'custom') {
+      return extractCustomText(p, json, p.customStreamPath);
+    }
+    if (p.apiType === 'openai') {
+      const c = json.choices && json.choices[0];
+      if (!c) return '';
+      return (c.delta && c.delta.content) || (c.message && c.message.content) || '';
+    }
+    if (p.apiType === 'anthropic') {
+      if (json.type === 'content_block_delta' && json.delta) {
+        return json.delta.text || '';
+      }
+      return '';
+    }
+    if (p.apiType === 'gemini') {
+      const c = json.candidates && json.candidates[0];
+      if (c && c.content && Array.isArray(c.content.parts)) {
+        return c.content.parts.map(function (x) { return x.text || ''; }).join('');
+      }
+      return '';
+    }
+    if (p.apiType === 'ollama') {
+      return (json.message && json.message.content) || '';
+    }
+    return '';
+  }
+
+  async function readErrorDetail(res) {
+    try {
+      const txt = await res.text();
+      try {
+        const j = JSON.parse(txt);
+        const msg = (j.error && (j.error.message || j.error.type)) || j.message || txt;
+        return String(msg).slice(0, 400);
+      } catch (e) {
+        return String(txt).slice(0, 400);
+      }
+    } catch (e) { return ''; }
+  }
+
+  /* ============================================================
+   *  流式请求
+   * ============================================================ */
+  async function streamChatCustom(p, messages, onDelta, signal) {
+    const url = buildCustomUrl(p);
+    const method = (p.customMethod || 'POST').toUpperCase();
+    const headers = buildCustomHeaders(p, messages);
+
+    const opts = { method: method, headers: headers, signal: signal };
+    if (method !== 'GET') {
+      opts.body = JSON.stringify(buildCustomBody(p, messages));
+    }
+
+    const res = await fetch(url, opts);
+
+    if (!res.ok) {
+      const detail = await readErrorDetail(res);
+      const err = new Error('HTTP ' + res.status + ' ' + (res.statusText || ''));
+      err.status = res.status;
+      err.detail = detail;
+      throw err;
+    }
+
+    if (!p.streamOn) {
+      const json = await res.json();
+      const text = extractCustomText(p, json, p.customRespPath);
+      if (text) onDelta(text);
+      return;
+    }
+
+    if (!res.body) throw new Error('当前环境不支持流式读取');
+
+    const fmt = (p.customStreamFmt || 'sse').toLowerCase();
+    const prefix = (p.customSsePrefix || 'data:').trim() || 'data:';
+    const doneMark = (p.customSseDone || '[DONE]').trim() || '[DONE]';
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+    let done = false;
+
+    while (!done) {
+      const r = await reader.read();
+      done = r.done;
+      if (r.value) buffer += decoder.decode(r.value, { stream: true });
+
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (let i = 0; i < lines.length; i++) {
+        const raw = lines[i].replace(/\r$/, '');
+        const trimmed = raw.trim();
+
+        if (fmt === 'text') {
+          if (!trimmed) continue;
+          onDelta(raw + '\n');
+          continue;
+        }
+
+        if (!trimmed) continue;
+
+        if (fmt === 'sse') {
+          if (!trimmed.startsWith(prefix)) continue;
+          const payload = trimmed.slice(prefix.length).trim();
+          if (!payload) continue;
+          if (payload === doneMark) return;
+          let json;
+          try { json = JSON.parse(payload); } catch (e) { continue; }
+          const t = extractCustomText(p, json, p.customStreamPath);
+          if (t) onDelta(t);
+          continue;
+        }
+
+        if (fmt === 'ndjson') {
+          let json;
+          try { json = JSON.parse(trimmed); } catch (e) { continue; }
+          const t = extractCustomText(p, json, p.customStreamPath);
+          if (t) onDelta(t);
+          continue;
+        }
+      }
+    }
+  }
+
+  async function streamChat(p, messages, onDelta, signal) {
+    if (p.apiType === 'custom') {
+      return streamChatCustom(p, messages, onDelta, signal);
+    }
+
+    const url = buildRequestUrl(p);
+    const headers = buildHeaders(p, messages);
+    const body = buildBody(p, messages);
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(body),
+      signal: signal
+    });
+
+    if (!res.ok) {
+      const detail = await readErrorDetail(res);
+      const err = new Error('HTTP ' + res.status + ' ' + (res.statusText || ''));
+      err.status = res.status;
+      err.detail = detail;
+      throw err;
+    }
+
+    if (!p.streamOn) {
+      const json = await res.json();
+      const text = parseNonStream(p, json);
+      if (text) onDelta(text);
+      return;
+    }
+
+    if (!res.body) throw new Error('当前环境不支持流式读取');
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+    let done = false;
+
+    while (!done) {
+      const r = await reader.read();
+      done = r.done;
+      if (r.value) buffer += decoder.decode(r.value, { stream: true });
+
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (let i = 0; i < lines.length; i++) {
+        const raw = lines[i].replace(/\r$/, '');
+        const trimmed = raw.trim();
+        if (!trimmed) continue;
+
+        if (p.apiType === 'ollama') {
+          const delta = parseStreamEvent(p, trimmed);
+          if (delta) onDelta(delta);
+        } else {
+          if (trimmed.startsWith(':')) continue;
+          if (!trimmed.startsWith('data:')) continue;
+          const payload = trimmed.slice(5).trim();
+          if (payload === '[DONE]') return;
+          const delta = parseStreamEvent(p, payload);
+          if (delta) onDelta(delta);
+        }
+      }
+    }
+  }
+
+  /* ============================================================
+   *  错误分类
+   * ============================================================ */
+  function classifyError(err) {
+    if (!err) return '未知错误';
+    if (err.name === 'AbortError') return '已取消或超时';
+
+    const status = err.status;
+    if (status === 400) return '400 请求格式错误：检查模型名、参数或消息体';
+    if (status === 401) return '401 未授权：API Key 无效或缺失';
+    if (status === 403) return '403 禁止访问：权限不足、区域限制或 Key 无该模型权限';
+    if (status === 404) return '404 未找到：API 地址或路径不正确，或模型名不存在';
+    if (status === 408) return '408 请求超时';
+    if (status === 413) return '413 请求体过大：请减少上下文长度';
+    if (status === 429) return '429 请求过于频繁或超出配额';
+    if (status >= 500) return status + ' 服务端错误，请稍后重试';
+
+    const msg = String(err.message || err);
+    if (/Failed to fetch|NetworkError|Load failed|ERR_/i.test(msg)) {
+      return '网络不可达，或浏览器被 CORS 策略阻止（多数 API 不允许浏览器直连，可自建代理）';
+    }
+    if (/api key/i.test(msg)) return 'API Key 相关错误：' + msg;
+    return msg;
+  }
+
+  /* ============================================================
+   *  表单 ↔ 预设 同步
+   * ============================================================ */
+  function renderHeaders(list) {
+    const wrap = $('#hdrList');
+    wrap.innerHTML = '';
+    (list || []).forEach(function (h, idx) {
+      const div = document.createElement('div');
+      div.className = 'hdr-item';
+
+      const chk = document.createElement('input');
+      chk.type = 'checkbox';
+      chk.checked = h.enabled !== false;
+
+      const kInp = document.createElement('input');
+      kInp.type = 'text';
+      kInp.className = 'hdr-key';
+      kInp.placeholder = 'Header';
+      kInp.value = h.key || '';
+
+      const vInp = document.createElement('input');
+      vInp.type = 'text';
+      vInp.placeholder = 'Value';
+      vInp.value = h.value || '';
+
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'mini-btn danger hdr-del';
+      del.textContent = '✕';
+
+      function sync() {
+        const p = activePreset();
+        if (!p.customHeaders[idx]) return;
+        p.customHeaders[idx].enabled = chk.checked;
+        p.customHeaders[idx].key = kInp.value;
+        p.customHeaders[idx].value = vInp.value;
+        persistSoon();
+      }
+      chk.addEventListener('change', sync);
+      kInp.addEventListener('input', sync);
+      vInp.addEventListener('input', sync);
+
+      del.addEventListener('click', function () {
+        const p = activePreset();
+        p.customHeaders.splice(idx, 1);
+        renderHeaders(p.customHeaders);
+        persistSoon();
+      });
+
+      div.appendChild(chk);
+      div.appendChild(kInp);
+      div.appendChild(vInp);
+      div.appendChild(del);
+      wrap.appendChild(div);
+    });
+  }
+
+  function renderTemplates() {
+    const sel = $('#tplSelect');
+    const tpls = state.settings.templates || [];
+    sel.innerHTML = '<option value="">— 选择模板 —</option>' +
+      tpls.map(function (t) {
+        return '<option value="' + t.id + '">' + escapeHtml(t.name) + '</option>';
+      }).join('');
+  }
+
+  function renderModelList() {
+    const dl = $('#modelList');
+    const recent = state.settings.recentModels || [];
+    dl.innerHTML = recent.map(function (m) {
+      return '<option value="' + escapeHtml(m) + '"></option>';
+    }).join('');
+  }
+
+  function renderPresetSelect() {
+    const s = state.settings;
+    const html = s.presets.map(function (p) {
+      return '<option value="' + p.id + '"' + (p.id === s.activePresetId ? ' selected' : '') + '>' +
+             escapeHtml(p.name) + (p.isDefault ? ' ★' : '') + '</option>';
+    }).join('');
+    $('#presetSelect').innerHTML = html;
+    $('#topPreset').innerHTML = html;
+
+    const p = activePreset();
+    $('#defaultTag').textContent = p.isDefault ? '★ 当前为默认预设' : '';
+  }
+
+  function updateTypeUI() {
+    const isCustom = $('#apiType').value === 'custom';
+    $('#standardFields').style.display = isCustom ? 'none' : '';
+    const cf = $('#customFields');
+    cf.style.display = isCustom ? 'flex' : 'none';
+  }
+
+  function fillFormFromPreset(p) {
+    $('#apiType').value = p.apiType;
+    $('#baseUrl').value = p.baseUrl || '';
+    $('#apiKey').value = p.apiKey || '';
+    $('#keyStorage').value = p.keyStorage || 'local';
+    $('#pathManual').checked = !!p.pathManual;
+    $('#manualUrl').value = p.manualUrl || '';
+    $('#manualUrl').style.display = p.pathManual ? '' : 'none';
+
+    renderHeaders(p.customHeaders || []);
+
+    // 自定义字段
+    $('#customMethod').value = p.customMethod || 'POST';
+    $('#customUrl').value = p.customUrl || '';
+    $('#customHeadersTpl').value = p.customHeadersTpl || '';
+    $('#customBodyTpl').value = p.customBodyTpl || '';
+    $('#customRespPath').value = p.customRespPath || '';
+    $('#customStreamPath').value = p.customStreamPath || '';
+    $('#customStreamFmt').value = p.customStreamFmt || 'sse';
+    $('#customSsePrefix').value = p.customSsePrefix || 'data:';
+    $('#customSseDone').value = p.customSseDone || '[DONE]';
+
+    $('#model').value = p.model || '';
+    $('#temperature').value = p.temperature != null ? p.temperature : 0.3;
+    $('#tempVal').textContent = Number(p.temperature != null ? p.temperature : 0.3).toFixed(1);
+    $('#maxTokens').value = p.maxTokens || '';
+    $('#topP').value = p.topP || '';
+    $('#freqPenalty').value = p.freqPenalty || '';
+    $('#presPenalty').value = p.presPenalty || '';
+    $('#stopSeq').value = p.stop || '';
+    $('#streamOn').checked = p.streamOn !== false;
+    $('#ctxLimit').value = p.ctxLimit || 20;
+    $('#system').value = p.system || '';
+    $('#presetRemark').value = p.remark || '';
+
+    updateTypeUI();
+    renderTemplates();
+    renderModelList();
+    updateModelHint();
+  }
+
+  function readFormIntoPreset(p) {
+    if (!p) return;
+    p.remark = $('#presetRemark').value;
+    p.apiType = $('#apiType').value;
+    p.baseUrl = $('#baseUrl').value.trim();
+    p.apiKey = $('#apiKey').value;
+    p.keyStorage = $('#keyStorage').value;
+    p.pathManual = $('#pathManual').checked;
+    p.manualUrl = $('#manualUrl').value.trim();
+
+    p.customMethod = $('#customMethod').value;
+    p.customUrl = $('#customUrl').value.trim();
+    p.customHeadersTpl = $('#customHeadersTpl').value;
+    p.customBodyTpl = $('#customBodyTpl').value;
+    p.customRespPath = $('#customRespPath').value.trim();
+    p.customStreamPath = $('#customStreamPath').value.trim();
+    p.customStreamFmt = $('#customStreamFmt').value;
+    p.customSsePrefix = $('#customSsePrefix').value;
+    p.customSseDone = $('#customSseDone').value;
+
+    p.model = $('#model').value.trim();
+    p.temperature = parseFloat($('#temperature').value);
+    if (isNaN(p.temperature)) p.temperature = 0.3;
+    p.maxTokens = $('#maxTokens').value;
+    p.topP = $('#topP').value;
+    p.freqPenalty = $('#freqPenalty').value;
+    p.presPenalty = $('#presPenalty').value;
+    p.stop = $('#stopSeq').value;
+    p.streamOn = $('#streamOn').checked;
+    p.ctxLimit = parseInt($('#ctxLimit').value, 10) || 20;
+    p.system = $('#system').value;
+  }
+
+  function updateModelHint() {
+    const p = activePreset();
+    const t = TYPE_LABEL[p.apiType] || p.apiType;
+    $('#modelHint').textContent = p.model ? (t + ' · ' + p.model) : '';
+  }
+
+  /* ============================================================
+   *  消息渲染
+   * ============================================================ */
+  function addMessage(role, content) {
+    const wrap = document.createElement('div');
+    wrap.className = 'msg ' + role;
+
+    const head = document.createElement('div');
+    head.className = 'msg-head';
+    const roleEl = document.createElement('span');
+    roleEl.className = 'msg-role';
+    roleEl.textContent = role === 'user' ? '你' : 'AI 助手';
+    head.appendChild(roleEl);
+
+    const body = document.createElement('div');
+    body.className = 'msg-body' + (role === 'assistant' ? ' markdown' : '');
+
+    if (role === 'assistant') {
+      body.innerHTML = renderMarkdown(content || '');
+    } else {
+      body.textContent = content;
+    }
+
+    wrap.appendChild(head);
+    wrap.appendChild(body);
+    messagesEl.appendChild(wrap);
+    scrollBottom();
+    return wrap;
+  }
+
+  function setGenerating(on) {
+    state.generating = on;
+    statusDot.classList.toggle('busy', on);
+    sendBtn.textContent = on ? '■' : '➤';
+    sendBtn.title = on ? '停止生成' : '发送';
+  }
+
+  /* ============================================================
+   *  发送流程
+   * ============================================================ */
+  async function sendMessage() {
+    if (state.generating) { stopGeneration(); return; }
+
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    const p = activePreset();
+    readFormIntoPreset(p);
+
+    if (p.apiType !== 'ollama' && p.apiType !== 'custom' && !p.apiKey) {
+      toast('请先填写 API Key', 'error');
+      openSidebar();
+      return;
+    }
+    if (p.apiType === 'custom' && !p.customUrl) {
+      toast('请先填写请求 URL', 'error');
+      openSidebar();
+      return;
+    }
+    if (p.apiType !== 'custom' && !p.model) {
+      toast('请先填写模型名称', 'error');
+      openSidebar();
+      return;
+    }
+
+    persist();
+
+    if (p.model && state.settings.recentModels.indexOf(p.model) === -1) {
+      state.settings.recentModels.unshift(p.model);
+      state.settings.recentModels = state.settings.recentModels.slice(0, 10);
+      renderModelList();
+      persistSoon();
+    }
+
+    inputEl.value = '';
+    autoResize();
+    hideEmpty();
+
+    addMessage('user', text);
+    state.messages.push({ role: 'user', content: text });
+
+    const limit = parseInt(p.ctxLimit, 10) || 20;
+    let history = state.messages.slice();
+    if (history.length > limit) history = history.slice(history.length - limit);
+    while (history.length && history[0].role !== 'user') history.shift();
+
+    const el = addMessage('assistant', '');
+    const body = el.querySelector('.msg-body');
+
+    let full = '';
+    let rafId = null;
+    let hasError = null;
+
+    function paint() {
+      if (rafId) return;
+      rafId = requestAnimationFrame(function () {
+        rafId = null;
+        const near = isNearBottom();
+        const cursor = state.generating ? '<span class="cursor"></span>' : '';
+        let html = renderMarkdown(full);
+        if (hasError) html += '<div class="error-box">' + escapeHtml(hasError) + '</div>';
+        body.innerHTML = html + cursor;
+        if (near) scrollBottom();
+      });
+    }
+
+    setGenerating(true);
+    state.controller = new AbortController();
+    paint();
+
+    try {
+      await streamChat(p, history, function (delta) {
+        full += delta;
+        paint();
+      }, state.controller.signal);
+
+      if (full) state.messages.push({ role: 'assistant', content: full });
+    } catch (err) {
+      if (err && err.name === 'AbortError') {
+        if (full) state.messages.push({ role: 'assistant', content: full });
+      } else {
+        hasError = classifyError(err) + (err && err.detail ? '\n' + err.detail : '');
+        if (full) state.messages.push({ role: 'assistant', content: full });
+        toast('请求失败', 'error');
+      }
+    } finally {
+      setGenerating(false);
+      state.controller = null;
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+
+      let html = renderMarkdown(full);
+      if (hasError) html += '<div class="error-box">' + escapeHtml(hasError) + '</div>';
+      if (!html.trim()) html = '<span class="muted">（无回复内容）</span>';
+      body.innerHTML = html;
+      scrollBottom();
+      inputEl.focus();
+    }
+  }
+
+  function stopGeneration() {
+    if (state.controller) {
+      state.controller.abort();
+      state.controller = null;
+    }
+  }
+
+  /* ============================================================
+   *  测试连接
+   * ============================================================ */
+  async function testConnection() {
+    const p = activePreset();
+    readFormIntoPreset(p);
+
+    if (p.apiType !== 'ollama' && p.apiType !== 'custom' && !p.apiKey) {
+      toast('请先填写 API Key', 'error'); return;
+    }
+    if (p.apiType === 'custom' && !p.customUrl) {
+      toast('请先填写请求 URL', 'error'); return;
+    }
+    if (p.apiType !== 'custom' && !p.model) {
+      toast('请先填写模型名称', 'error'); return;
+    }
+
+    const btn = $('#testBtn');
+    const oldText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '测试中…';
+
+    const savedStream = p.streamOn;
+    p.streamOn = false;
+
+    const t0 = performance.now();
+    const ctrl = new AbortController();
+    const timer = setTimeout(function () { ctrl.abort(); }, 20000);
+
+    try {
+      let reply = '';
+      await streamChat(p, [{ role: 'user', content: 'ping' }], function (d) { reply += d; }, ctrl.signal);
+      clearTimeout(timer);
+      const elapsed = Math.round(performance.now() - t0);
+      toast('连接成功 ✓ ' + elapsed + 'ms' + (reply ? ' · ' + reply.slice(0, 20) : ''), 'success');
+    } catch (err) {
+      clearTimeout(timer);
+      toast('连接失败：' + classifyError(err).slice(0, 90), 'error');
+    } finally {
+      clearTimeout(timer);
+      p.streamOn = savedStream;
+      btn.disabled = false;
+      btn.textContent = oldText;
+    }
+  }
+
+  /* ============================================================
+   *  一键诊断
+   * ============================================================ */
+  function diagnose() {
+    const p = activePreset();
+    readFormIntoPreset(p);
+
+    const box = $('#diagBox');
+    const lines = [];
+
+    function line(label, value, cls) {
+      lines.push('<span class="lbl">' + escapeHtml(label) + '</span> ' +
+                 '<span class="' + (cls || '') + '">' + escapeHtml(value) + '</span>');
+    }
+
+    line('接口类型：', TYPE_LABEL[p.apiType] || p.apiType);
+    line('存储方式：', { local: 'localStorage', session: 'sessionStorage', none: '不保存' }[p.keyStorage] || p.keyStorage);
+
+    if (p.apiType === 'custom') {
+      try {
+        const u = buildCustomUrl(p);
+        line('请求 URL：', u);
+        if (!/^https?:\/\//i.test(u)) line('URL 格式：', '缺少协议头', 'err');
+        else line('URL 格式：', '正常', 'ok');
+      } catch (e) {
+        line('URL 格式：', e.message, 'err');
+      }
+
+      if (p.apiKey) line('API Key：', '已填写（' + p.apiKey.length + ' 字符）', 'ok');
+      else line('API Key：', '未填写（若模板不需要可忽略）', 'warn');
+
+      try {
+        JSON.parse(p.customHeadersTpl || '{}');
+        line('请求头模板：', '合法 JSON', 'ok');
+      } catch (e) {
+        line('请求头模板：', '不是合法 JSON —— ' + e.message, 'err');
+      }
+      try {
+        JSON.parse(p.customBodyTpl || '{}');
+        line('请求体模板：', '合法 JSON', 'ok');
+      } catch (e) {
+        line('请求体模板：', '不是合法 JSON —— ' + e.message, 'err');
+      }
+
+      line('响应提取路径：', p.customRespPath || '（留空取整体）');
+      line('流式提取路径：', p.customStreamPath || '（留空取整体）');
+      line('流式格式：', p.customStreamFmt || 'sse');
+      line('流式输出：', p.streamOn ? '开启' : '关闭');
+
+      if (/^https:\/\//.test(p.customUrl || '')) {
+        line('CORS：', '浏览器直连第三方 API 可能被跨域策略拦截，如失败请自建代理', 'warn');
+      }
+      box.innerHTML = lines.join('<br>');
+      box.classList.add('show');
+      return;
+    }
+
+    let urlOk = true;
+    let urlMsg = '';
+    try {
+      const u = buildRequestUrl(p);
+      line('请求 URL：', u);
+      if (!/^https?:\/\//i.test(u)) { urlOk = false; urlMsg = 'URL 缺少协议头'; }
+    } catch (e) {
+      urlOk = false;
+      urlMsg = e.message;
+    }
+    if (urlOk) line('URL 格式：', '正常', 'ok');
+    else line('URL 格式：', urlMsg, 'err');
+
+    if (p.apiType === 'ollama') {
+      line('API Key：', '本地接口，可留空', 'warn');
+    } else if (!p.apiKey) {
+      line('API Key：', '未填写', 'err');
+    } else if (p.apiKey.length < 10) {
+      line('API Key：', '长度异常（' + p.apiKey.length + ' 字符）', 'warn');
+    } else {
+      line('API Key：', '已填写（' + p.apiKey.length + ' 字符）', 'ok');
+    }
+
+    if (!p.model) line('模型：', '未填写', 'err');
+    else line('模型：', p.model, 'ok');
+
+    if (/\/chat\/completions/.test(p.baseUrl) && !p.pathManual) {
+      line('提示：', '基础地址中已含 /chat/completions，将直接使用', 'warn');
+    }
+    if (p.apiType === 'anthropic' && /api\.openai\.com/.test(p.baseUrl)) {
+      line('警告：', '接口类型为 Anthropic，但地址是 OpenAI 的，可能不匹配', 'err');
+    }
+    if (p.apiType === 'openai' && /anthropic\.com/.test(p.baseUrl)) {
+      line('警告：', '接口类型为 OpenAI，但地址是 Anthropic 的，可能不匹配', 'err');
+    }
+    if (/localhost|127\.0\.0\.1/.test(p.baseUrl)) {
+      line('提示：', '本地地址需确保对应服务已启动并允许跨域', 'warn');
+    }
+    if (!p.pathManual && /^https:\/\//.test(p.baseUrl)) {
+      line('CORS：', '浏览器直连第三方 API 可能被跨域策略拦截，如失败请自建代理', 'warn');
+    }
+
+    line('上下文保留：', (p.ctxLimit || 20) + ' 条消息');
+    line('流式输出：', p.streamOn ? '开启' : '关闭');
+
+    box.innerHTML = lines.join('<br>');
+    box.classList.add('show');
+  }
+
+  /* ============================================================
+   *  获取模型列表
+   * ============================================================ */
+  async function fetchModels() {
+    const p = activePreset();
+    readFormIntoPreset(p);
+
+    if (p.apiType === 'custom') {
+      toast('自定义接口不支持自动获取模型，请手动填写', 'error');
+      return;
+    }
+    if (!p.apiKey && p.apiType !== 'ollama') { toast('请先填写 API Key', 'error'); return; }
+    if (!p.baseUrl) { toast('请先填写 API 地址', 'error'); return; }
+
+    const btn = $('#fetchModels');
+    const old = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '获取中…';
+
+    const ctrl = new AbortController();
+    const timer = setTimeout(function () { ctrl.abort(); }, 15000);
+
+    try {
+      const url = buildModelsUrl(p);
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: buildHeaders(p, []),
+        signal: ctrl.signal
+      });
+      clearTimeout(timer);
+
+      if (!res.ok) {
+        const detail = await readErrorDetail(res);
+        toast('获取失败 HTTP ' + res.status + '：' + detail.slice(0, 60), 'error');
+        return;
+      }
+
+      const json = await res.json();
+      let list = [];
+
+      if (p.apiType === 'openai' || p.apiType === 'anthropic') {
+        if (Array.isArray(json.data)) {
+          list = json.data.map(function (m) { return m.id; }).filter(Boolean);
+        }
+      } else if (p.apiType === 'gemini') {
+        if (Array.isArray(json.models)) {
+          list = json.models.map(function (m) {
+            return String(m.name || '').replace(/^models\//, '');
+          }).filter(Boolean);
+        }
+      } else if (p.apiType === 'ollama') {
+        if (Array.isArray(json.models)) {
+          list = json.models.map(function (m) { return m.name; }).filter(Boolean);
+        }
+      }
+
+      if (!list.length) { toast('接口返回了空列表', 'error'); return; }
+
+      state.settings.recentModels = list.slice(0, 30);
+      renderModelList();
+      persistSoon();
+
+      const dl = $('#modelList');
+      dl.innerHTML = list.map(function (m) {
+        return '<option value="' + escapeHtml(m) + '"></option>';
+      }).join('');
+
+      toast('获取到 ' + list.length + ' 个模型，可在输入框下拉选择', 'success');
+    } catch (err) {
+      clearTimeout(timer);
+      toast('获取失败：' + classifyError(err).slice(0, 80), 'error');
+    } finally {
+      clearTimeout(timer);
+      btn.disabled = false;
+      btn.textContent = old;
+    }
+  }
+
+  /* ============================================================
+   *  预设操作
+   * ============================================================ */
+  function switchPreset(id) {
+    const p = activePreset();
+    readFormIntoPreset(p);
+    persist();
+
+    state.settings.activePresetId = id;
+    renderPresetSelect();
+    fillFormFromPreset(activePreset());
+    persistSoon();
+  }
+
+  function presetNew() {
+    const p = activePreset();
+    readFormIntoPreset(p);
+
+    const np = newPreset('预设 ' + (state.settings.presets.length + 1), 'openai');
+    state.settings.presets.push(np);
+    state.settings.activePresetId = np.id;
+
+    renderPresetSelect();
+    fillFormFromPreset(np);
+    persist();
+    toast('已新建预设');
+  }
+
+  function presetRename() {
+    const p = activePreset();
+    const name = prompt('预设名称：', p.name);
+    if (name == null) return;
+    const trimmed = name.trim();
+    if (!trimmed) { toast('名称不能为空', 'error'); return; }
+    p.name = trimmed;
+    renderPresetSelect();
+    persist();
+    toast('已重命名');
+  }
+
+  function presetDup() {
+    const p = activePreset();
+    readFormIntoPreset(p);
+
+    const copy = JSON.parse(JSON.stringify(p));
+    copy.id = uid();
+    copy.name = p.name + ' 副本';
+    copy.isDefault = false;
+
+    const idx = state.settings.presets.indexOf(p);
+    state.settings.presets.splice(idx + 1, 0, copy);
+    state.settings.activePresetId = copy.id;
+
+    renderPresetSelect();
+    fillFormFromPreset(copy);
+    persist();
+    toast('已复制预设');
+  }
+
+  function presetDel() {
+    const s = state.settings;
+    if (s.presets.length <= 1) { toast('至少保留一个预设', 'error'); return; }
+
+    const p = activePreset();
+    if (!confirm('确定删除预设「' + p.name + '」？')) return;
+
+    try { sessionStorage.removeItem(SS_KEY_PREFIX + p.id); } catch (e) {}
+
+    const idx = s.presets.indexOf(p);
+    s.presets.splice(idx, 1);
+
+    if (p.isDefault && s.presets.length) s.presets[0].isDefault = true;
+    s.activePresetId = s.presets[Math.max(0, idx - 1)].id;
+
+    renderPresetSelect();
+    fillFormFromPreset(activePreset());
+    persist();
+    toast('已删除预设');
+  }
+
+  function presetSetDefault() {
+    const p = activePreset();
+    state.settings.presets.forEach(function (x) { x.isDefault = false; });
+    p.isDefault = true;
+    renderPresetSelect();
+    persist();
+    toast('已设为默认预设');
+  }
+
+  /* ============================================================
+   *  导入 / 导出
+   * ============================================================ */
+  function exportConfig() {
+    const p = activePreset();
+    readFormIntoPreset(p);
+
+    const mask = $('#exportMask').checked;
+    const copy = JSON.parse(JSON.stringify(p));
+    if (mask && copy.apiKey) copy.apiKey = '***';
+
+    const payload = {
+      type: 'ai-coder-preset',
+      version: 3,
+      exportedAt: new Date().toISOString(),
+      presets: [copy],
+      templates: state.settings.templates
+    };
+
+    const name = (p.name || 'preset').replace(/[\\/:*?"<>|]/g, '_');
+    download('ai-coder-' + name + '.json', JSON.stringify(payload, null, 2));
+    toast('已导出' + (mask ? '（API Key 已脱敏）' : ''));
+  }
+
+  function importConfig(file) {
+    const reader = new FileReader();
+    reader.onload = function () {
+      let data;
+      try { data = JSON.parse(String(reader.result)); }
+      catch (e) { toast('JSON 解析失败', 'error'); return; }
+
+      let presets = [];
+      if (Array.isArray(data.presets)) presets = data.presets;
+      else if (data.baseUrl || data.model || data.customUrl) presets = [data];
+
+      if (!presets.length) { toast('文件中未找到有效预设', 'error'); return; }
+
+      const incoming = presets.map(function (raw) {
+        const base = newPreset(raw.name || '导入预设', raw.apiType || 'openai');
+        const merged = Object.assign(base, raw);
+        merged.id = uid();
+        merged.isDefault = false;
+        if (merged.apiKey === '***') merged.apiKey = '';
+        if (!Array.isArray(merged.customHeaders)) merged.customHeaders = [];
+        return merged;
+      });
+
+      incoming.forEach(function (p) { state.settings.presets.push(p); });
+
+      if (Array.isArray(data.templates) && data.templates.length) {
+        data.templates.forEach(function (t) {
+          state.settings.templates.push({
+            id: uid(),
+            name: t.name || '导入模板',
+            content: t.content || ''
+          });
+        });
+        renderTemplates();
+      }
+
+      state.settings.activePresetId = incoming[0].id;
+      renderPresetSelect();
+      fillFormFromPreset(incoming[0]);
+      persist();
+      toast('已导入 ' + incoming.length + ' 个预设');
+    };
+    reader.readAsText(file);
+  }
+
+  /* ============================================================
+   *  事件绑定
+   * ============================================================ */
+  sendBtn.addEventListener('click', function () {
+    if (state.generating) stopGeneration();
+    else sendMessage();
+  });
+
+  inputEl.addEventListener('input', autoResize);
+  inputEl.addEventListener('keydown', function (e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  $('#clearBtn').addEventListener('click', function () {
+    stopGeneration();
+    messagesEl.querySelectorAll('.msg').forEach(function (n) { n.remove(); });
+    state.messages = [];
+    showEmpty();
+    toast('对话已清空');
+  });
+
+  $('#menuBtn').addEventListener('click', openSidebar);
+  $('#closeSidebar').addEventListener('click', closeSidebar);
+  overlay.addEventListener('click', closeSidebar);
+
+  $('#presetSelect').addEventListener('change', function () { switchPreset(this.value); });
+  $('#topPreset').addEventListener('change', function () { switchPreset(this.value); });
+
+  $('#presetNew').addEventListener('click', presetNew);
+  $('#presetRename').addEventListener('click', presetRename);
+  $('#presetDup').addEventListener('click', presetDup);
+  $('#presetDel').addEventListener('click', presetDel);
+  $('#presetDefault').addEventListener('click', presetSetDefault);
+  $('#exportBtn').addEventListener('click', exportConfig);
+  $('#importBtn').addEventListener('click', function () { $('#importFile').click(); });
+  $('#importFile').addEventListener('change', function () {
+    if (this.files && this.files[0]) importConfig(this.files[0]);
+    this.value = '';
+  });
+
+  const formBindings = [
+    ['#apiType', 'value', 'apiType'],
+    ['#baseUrl', 'value', 'baseUrl'],
+    ['#apiKey', 'value', 'apiKey'],
+    ['#keyStorage', 'value', 'keyStorage'],
+    ['#pathManual', 'checked', 'pathManual'],
+    ['#manualUrl', 'value', 'manualUrl'],
+    ['#customMethod', 'value', 'customMethod'],
+    ['#customUrl', 'value', 'customUrl'],
+    ['#customHeadersTpl', 'value', 'customHeadersTpl'],
+    ['#customBodyTpl', 'value', 'customBodyTpl'],
+    ['#customRespPath', 'value', 'customRespPath'],
+    ['#customStreamPath', 'value', 'customStreamPath'],
+    ['#customStreamFmt', 'value', 'customStreamFmt'],
+    ['#customSsePrefix', 'value', 'customSsePrefix'],
+    ['#customSseDone', 'value', 'customSseDone'],
+    ['#model', 'value', 'model'],
+    ['#maxTokens', 'value', 'maxTokens'],
+    ['#topP', 'value', 'topP'],
+    ['#freqPenalty', 'value', 'freqPenalty'],
+    ['#presPenalty', 'value', 'presPenalty'],
+    ['#stopSeq', 'value', 'stop'],
+    ['#streamOn', 'checked', 'streamOn'],
+    ['#system', 'value', 'system']
+  ];
+
+  formBindings.forEach(function (b) {
+    const el = $(b[0]);
+    if (!el) return;
+    function update() {
+      const p = activePreset();
+      p[b[2]] = el[b[1]];
+      persistSoon();
+      if (b[2] === 'model') updateModelHint();
+    }
+    el.addEventListener('input', update);
+    el.addEventListener('change', update);
+  });
+
+  $('#apiType').addEventListener('change', function () {
+    const p = activePreset();
+    const t = this.value;
+    p.apiType = t;
+    const d = TYPE_DEFAULTS[t];
+
+    if (t !== 'custom') {
+      const base = stripSlash($('#baseUrl').value);
+      const isOldDefault = Object.keys(TYPE_DEFAULTS).some(function (k) {
+        return TYPE_DEFAULTS[k].baseUrl && stripSlash(TYPE_DEFAULTS[k].baseUrl) === base;
+      });
+      if (isOldDefault || !base) {
+        p.baseUrl = d.baseUrl;
+        $('#baseUrl').value = d.baseUrl;
+      }
+      const curModel = $('#model').value.trim();
+      const isOldModel = Object.keys(TYPE_DEFAULTS).some(function (k) {
+        return TYPE_DEFAULTS[k].model === curModel;
+      });
+      if (isOldModel || !curModel) {
+        p.model = d.model;
+        $('#model').value = d.model;
+      }
+    }
+    updateTypeUI();
+    updateModelHint();
+    persistSoon();
+  });
+
+  $('#pathManual').addEventListener('change', function () {
+    $('#manualUrl').style.display = this.checked ? '' : 'none';
+  });
+
+  $('#toggleKey').addEventListener('click', function () {
+    const inp = $('#apiKey');
+    const isPwd = inp.type === 'password';
+    inp.type = isPwd ? 'text' : 'password';
+    this.textContent = isPwd ? '隐藏' : '显示';
+  });
+
+  $('#apiKey').addEventListener('paste', function () {
+    const inp = this;
+    setTimeout(function () {
+      const v = inp.value.trim();
+      if (!/^[\x20-\x7e]+$/.test(v)) return;
+      const cleaned = v.replace(/^["'\s]+|["'\s]+$/g, '');
+      if (cleaned !== inp.value) {
+        inp.value = cleaned;
+        const p = activePreset();
+        p.apiKey = cleaned;
+        persistSoon();
+      }
+    }, 30);
+  });
+
+  $('#temperature').addEventListener('input', function () {
+    const v = parseFloat(this.value);
+    $('#tempVal').textContent = v.toFixed(1);
+    activePreset().temperature = v;
+    persistSoon();
+  });
+
+  $$('[data-temp]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const v = parseFloat(btn.dataset.temp);
+      $('#temperature').value = v;
+      $('#tempVal').textContent = v.toFixed(1);
+      activePreset().temperature = v;
+      persistSoon();
+    });
+  });
+
+  $('#ctxLimit').addEventListener('input', function () {
+    const v = parseInt(this.value, 10);
+    activePreset().ctxLimit = isNaN(v) ? 20 : v;
+    persistSoon();
+  });
+
+  $('#presetRemark').addEventListener('input', function () {
+    activePreset().remark = this.value;
+    persistSoon();
+  });
+
+  $('#addHeader').addEventListener('click', function () {
+    const p = activePreset();
+    p.customHeaders.push({ key: '', value: '', enabled: true });
+    renderHeaders(p.customHeaders);
+    persistSoon();
+  });
+
+  /* 自定义模板填充按钮 */
+  $('#tplOpenai').addEventListener('click', function () {
+    $('#customMethod').value = 'POST';
+    $('#customUrl').value = 'https://api.openai.com/v1/chat/completions';
+    $('#customHeadersTpl').value =
+      '{"Content-Type":"application/json","Authorization":"Bearer {{apiKey}}"}';
+    $('#customBodyTpl').value =
+      '{"model":"{{model}}","messages":{{messages}},"temperature":{{temperature}},"stream":{{stream}}}';
+    $('#customRespPath').value = 'choices[0].message.content';
+    $('#customStreamPath').value = 'choices[0].delta.content';
+    $('#customStreamFmt').value = 'sse';
+    $('#customSsePrefix').value = 'data:';
+    $('#customSseDone').value = '[DONE]';
+    readFormIntoPreset(activePreset());
+    persist();
+    toast('已填充 OpenAI 模板');
+  });
+
+  $('#tplOllama').addEventListener('click', function () {
+    $('#customMethod').value = 'POST';
+    $('#customUrl').value = 'http://localhost:11434/api/chat';
+    $('#customHeadersTpl').value = '{"Content-Type":"application/json"}';
+    $('#customBodyTpl').value =
+      '{"model":"{{model}}","messages":{{messages}},"stream":{{stream}}}';
+    $('#customRespPath').value = 'message.content';
+    $('#customStreamPath').value = 'message.content';
+    $('#customStreamFmt').value = 'ndjson';
+    $('#customSsePrefix').value = 'data:';
+    $('#customSseDone').value = '[DONE]';
+    readFormIntoPreset(activePreset());
+    persist();
+    toast('已填充 Ollama 模板');
+  });
+
+  $('#saveTpl').addEventListener('click', function () {
+    const content = $('#system').value.trim();
+    if (!content) { toast('系统提示词为空', 'error'); return; }
+    const name = prompt('模板名称：', '我的模板');
+    if (name == null) return;
+    const n = name.trim() || ('模板 ' + (state.settings.templates.length + 1));
+    state.settings.templates.push({ id: uid(), name: n, content: content });
+    renderTemplates();
+    persist();
+    toast('模板已保存');
+  });
+
+  $('#tplSelect').addEventListener('change', function () {
+    const id = this.value;
+    if (!id) return;
+    const t = state.settings.templates.find(function (x) { return x.id === id; });
+    if (!t) return;
+    $('#system').value = t.content;
+    activePreset().system = t.content;
+    persistSoon();
+    this.value = '';
+  });
+
+  $('#delTpl').addEventListener('click', function () {
+    const id = $('#tplSelect').value;
+    if (!id) { toast('请先选择一个模板', 'error'); return; }
+    const idx = state.settings.templates.findIndex(function (x) { return x.id === id; });
+    if (idx < 0) return;
+    if (!confirm('删除模板「' + state.settings.templates[idx].name + '」？')) return;
+    state.settings.templates.splice(idx, 1);
+    renderTemplates();
+    persist();
+    toast('模板已删除');
+  });
+
+  $('#testBtn').addEventListener('click', testConnection);
+  $('#diagBtn').addEventListener('click', diagnose);
+  $('#fetchModels').addEventListener('click', fetchModels);
+
+  $('#resetBtn').addEventListener('click', function () {
+    const p = activePreset();
+    if (!confirm('将当前预设恢复为默认值？API Key 也会被清空。')) return;
+    const t = p.apiType || 'openai';
+    const d = TYPE_DEFAULTS[t];
+    p.baseUrl = d.baseUrl;
+    p.apiKey = '';
+    p.model = d.model;
+    p.pathManual = false;
+    p.manualUrl = '';
+    p.customHeaders = [];
+    p.customUrl = '';
+    p.customMethod = 'POST';
+    p.customHeadersTpl = '{"Content-Type":"application/json","Authorization":"Bearer {{apiKey}}"}';
+    p.customBodyTpl = '{"model":"{{model}}","messages":{{messages}},"temperature":{{temperature}},"stream":{{stream}}}';
+    p.customRespPath = 'choices[0].message.content';
+    p.customStreamPath = 'choices[0].delta.content';
+    p.customStreamFmt = 'sse';
+    p.customSsePrefix = 'data:';
+    p.customSseDone = '[DONE]';
+    p.temperature = 0.3;
+    p.maxTokens = '';
+    p.topP = '';
+    p.freqPenalty = '';
+    p.presPenalty = '';
+    p.stop = '';
+    p.streamOn = true;
+    p.ctxLimit = 20;
+    p.system = DEFAULT_SYSTEM;
+    fillFormFromPreset(p);
+    persist();
+    toast('已恢复默认值');
+  });
+
+  $('#wipeBtn').addEventListener('click', function () {
+    if (!confirm('将清空所有预设、模板与对话记录，且无法恢复。确定继续？')) return;
+    try {
+      localStorage.removeItem(LS_KEY);
+      Object.keys(sessionStorage).forEach(function (k) {
+        if (k.indexOf(SS_KEY_PREFIX) === 0) sessionStorage.removeItem(k);
+      });
+    } catch (e) {}
+    state.settings = defaultSettings();
+    state.messages = [];
+    messagesEl.querySelectorAll('.msg').forEach(function (n) { n.remove(); });
+    showEmpty();
+    renderPresetSelect();
+    fillFormFromPreset(activePreset());
+    persist();
+    toast('本地数据已清空');
+  });
+
+  messagesEl.addEventListener('click', async function (e) {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+
+    const action = btn.dataset.action;
+    const codeEl = document.getElementById(btn.dataset.codeId);
+    if (!codeEl) return;
+
+    const code = codeEl.textContent;
+
+    if (action === 'copy') {
+      let ok = false;
+      try {
+        await navigator.clipboard.writeText(code);
+        ok = true;
+      } catch (err) {
+        const ta = document.createElement('textarea');
+        ta.value = code;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); ok = true; } catch (e2) {}
+        ta.remove();
+      }
+      const old = btn.textContent;
+      btn.textContent = ok ? '已复制 ✓' : '复制失败';
+      setTimeout(function () { btn.textContent = old; }, 1400);
+    }
+
+    if (action === 'preview') {
+      const blob = new Blob([code], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const w = window.open(url, '_blank');
+      if (!w) toast('浏览器拦截了新窗口，请允许弹窗', 'error');
+      setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+    }
+  });
+
+  $$('.chip').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      inputEl.value = chip.textContent.trim();
+      autoResize();
+      inputEl.focus();
+    });
+  });
+
+  window.addEventListener('beforeunload', function () {
+    const p = activePreset();
+    if (p) readFormIntoPreset(p);
+    persist();
+  });
+
+  /* ============================================================
+   *  初始化
+   * ============================================================ */
+  state.settings = loadSettings();
+
+  renderPresetSelect();
+  fillFormFromPreset(activePreset());
+  autoResize();
+  inputEl.focus();
+})();
+</script>
+</body>
+</html>
